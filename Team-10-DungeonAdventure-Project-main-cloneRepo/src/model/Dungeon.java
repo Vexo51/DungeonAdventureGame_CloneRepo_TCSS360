@@ -1,5 +1,6 @@
 package model;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -12,7 +13,7 @@ import java.util.Random;
  * @author Tyler Nguyen
  * @version 11-16-23
  */
-public class Dungeon {
+public class Dungeon implements Serializable {
 
     /**
      * This is the Maze.
@@ -52,9 +53,47 @@ public class Dungeon {
     /**
      * This will contain all the OO Pillars used so far in the maze.
      */
-    private List<String> myPillarHolder = new ArrayList<>();
+    private List<String> myPillarHolder;
 
-    private boolean myUseVision;
+    /**
+     * This will keep track if the traversal found OO Pillar A.
+     */
+    private boolean myFoundPillarA;
+
+    /**
+     * This will keep track if the traversal found OO Pillar E.
+     */
+    private boolean myFoundPillarE;
+
+    /**
+     * This will keep track if the traversal found OO Pillar I.
+     */
+    private boolean myFoundPillarI;
+
+    /**
+     * This will keep track if the traversal found OO Pillar P.
+     */
+    private boolean myFoundPillarP;
+
+    /**
+     * This will keep track if the traversal found the exit.
+     */
+    private boolean myFoundExit;
+
+    /**
+     * This is a constructor if we already have
+     * a map layout that we want to use.
+     *
+     * @param theMaze is the maze for the dungeon.
+     */
+    public Dungeon(final Room[][] theMaze) {
+        myMaze = theMaze;
+        myPillarHolder = new ArrayList<>();
+        myRows = theMaze.length;
+        myColumns = theMaze[0].length;
+        myAdventurePosition = getEntrance();
+        addMonster();
+    }
 
     /**
      * This will create the maze and generate all the
@@ -64,26 +103,44 @@ public class Dungeon {
      * @param theColumns is the amount of columns in maze.
      */
     public Dungeon(final int theRows, final int theColumns) {
-        if (theRows == 0 || theColumns == 0) {
-            throw new IllegalArgumentException("The dimensions cannot be 0");
+        if (theRows <= 0 || theColumns <= 0 || theRows * theColumns < 6) {
+            throw new IllegalArgumentException("The area of the dimensions cannot be less than 6");
         }
+        myPillarHolder = new ArrayList<>();
         myRows = theRows;
         myColumns = theColumns;
         myMaze = new Room[myRows][myColumns];
         generateMaze();
         placeEntrance();
         placeExit();
-        while (!isMazeTraversable()) {
+        while (!isMazeTraversable(myMaze)) {
+            myPillarHolder = new ArrayList<>();
+            foundedRoomContains();
             generateMaze();
             placeEntrance();
             placeExit();
-            isMazeTraversable();
-        }
-        while (BASE_CASE < 5) {
-            placePillars();
-            BASE_CASE++;
+            while (BASE_CASE < 5) {
+                placePillars();
+                BASE_CASE++;
+            }
+            isMazeTraversable(myMaze);
+            BASE_CASE = 1;
         }
         myAdventurePosition = getEntrance();
+        addMonster();
+    }
+
+    /**
+     * This will reset the traversal tracker that
+     * keeps track on if the exit and OO Pillars
+     * are found or not.
+     */
+    private void foundedRoomContains() {
+        myFoundPillarA = false;
+        myFoundPillarE = false;
+        myFoundPillarI = false;
+        myFoundPillarP = false;
+        myFoundExit = false;
     }
 
     /**
@@ -113,6 +170,12 @@ public class Dungeon {
         myAdventurePosition = theNewRoom;
     }
 
+    /**
+     * This will get the row that the adventurer
+     * is in.
+     *
+     * @return the row location of adventurer.
+     */
     public int getAdventureRow() {
         for (int i = 0; i < myMaze.length; i++) {
             for (int j = 0; j < myMaze[i].length; j++) {
@@ -124,6 +187,12 @@ public class Dungeon {
         return -1;
     }
 
+    /**
+     * This will get the column that the adventurer
+     * is in.
+     *
+     * @return the column location of adventurer.
+     */
     public int getAdventureColumn() {
         for (int i = 0; i < myMaze.length; i++) {
             for (int j = 0; j < myMaze[i].length; j++) {
@@ -158,14 +227,13 @@ public class Dungeon {
      * that we gave it and update the Rooms accordingly.
      */
     private void generateMaze() {
-        Room[][] tempMaze = new Room[getRows()][getColumns()];
         for (int i = 0; i < myRows; i++) {
             for (int j = 0; j < myColumns; j++) {
-                tempMaze[i][j] = new Room().createRandomRoom();
+                myMaze[i][j] = new Room().createRandomRoom();
             }
         }
 
-        myMaze = updateRooms(tempMaze);
+        myMaze = updateRooms(myMaze);
     }
 
     /**
@@ -175,15 +243,17 @@ public class Dungeon {
      * @param theMaze is the initial maze.
      * @return the updated maze with updated doors.
      */
-    private Room[][] updateRooms(final Room[][] theMaze) {
+    public Room[][] updateRooms(final Room[][] theMaze) {
         for (int i = 0; i < theMaze.length; i++) {
             for (int j = 0; j < theMaze[i].length; j++) {
                 if (theMaze[i][j].getNorthDoor() && i != 0) {
                     theMaze[i - 1][j].setSouthDoor(true);
+                } else if (i == 0) {
+                    theMaze[i][j].setNorthDoor(false);
                 } else {
-                    if (i != 0) {
+//                    if (i != 0) {
                         theMaze[i - 1][j].setSouthDoor(false);
-                    }
+                    //}
                 }
                 if (i == theMaze.length - 1) {
                     theMaze[i][j].setSouthDoor(false);
@@ -216,13 +286,13 @@ public class Dungeon {
      *
      * @return if the maze can be completed or not.
      */
-    private boolean isMazeTraversable() {
-        boolean [][] visitedRooms = new boolean[myRows][myColumns];
+    public boolean isMazeTraversable(final Room[][] theMaze) {
+        boolean [][] visitedRooms = new boolean[theMaze.length][theMaze[0].length];
         int entranceRowConfirmation = -1;
         int entranceColumnConfirmation = -1;
-        for (int i = 0; i < myRows; i++) {
-            for (int j = 0; j < myColumns; j++) {
-                if (myMaze[i][j] == getEntrance()) {
+        for (int i = 0; i < theMaze.length; i++) {
+            for (int j = 0; j < theMaze[i].length; j++) {
+                if (theMaze[i][j].getIsEntrance()) {
                     entranceRowConfirmation = i;
                     entranceColumnConfirmation = j;
                     break;
@@ -248,28 +318,43 @@ public class Dungeon {
      */
     private boolean trueMazeTraversal(final boolean[][] theVisitedRooms, final int theRow, final int theColumn) {
         boolean mazeSolved = false;
+        if (myFoundExit && myFoundPillarA && myFoundPillarE && myFoundPillarI && myFoundPillarP) {
+            return true;
+        }
         if (!isValidPosition(theRow, theColumn) || theVisitedRooms[theRow][theColumn]) {
             return false;
         }
 
         theVisitedRooms[theRow][theColumn] = true;
 
-        if (myMaze[theRow][theColumn].getIsExit()) {
-            return true;
+        if (myMaze[theRow][theColumn].getHasOOPPillar() && myMaze[theRow][theColumn].getSpecificOOPPillar().equals("A")) {
+            myFoundPillarA = true;
+        }
+        else if (myMaze[theRow][theColumn].getHasOOPPillar() && myMaze[theRow][theColumn].getSpecificOOPPillar().equals("E")) {
+            myFoundPillarE = true;
+        }
+        else if (myMaze[theRow][theColumn].getHasOOPPillar() && myMaze[theRow][theColumn].getSpecificOOPPillar().equals("I")) {
+            myFoundPillarI = true;
+        }
+        else if (myMaze[theRow][theColumn].getHasOOPPillar() && myMaze[theRow][theColumn].getSpecificOOPPillar().equals("P")) {
+            myFoundPillarP = true;
+        }
+        else if (myMaze[theRow][theColumn].getIsExit()) {
+            myFoundExit = true;
         }
 
         if (!mazeSolved) {
             if (myMaze[theRow][theColumn].getNorthDoor()) {
-                return trueMazeTraversal(theVisitedRooms, theRow - 1, theColumn);
+                mazeSolved =  trueMazeTraversal(theVisitedRooms, theRow - 1, theColumn);
             }
             if (myMaze[theRow][theColumn].getEastDoor()) {
-                return trueMazeTraversal(theVisitedRooms, theRow, theColumn + 1);
+                mazeSolved =  trueMazeTraversal(theVisitedRooms, theRow, theColumn + 1);
             }
             if (myMaze[theRow][theColumn].getSouthDoor()) {
-                return trueMazeTraversal(theVisitedRooms, theRow + 1, theColumn);
+                mazeSolved =  trueMazeTraversal(theVisitedRooms, theRow + 1, theColumn);
             }
             if (myMaze[theRow][theColumn].getWestDoor()) {
-                return trueMazeTraversal(theVisitedRooms, theRow, theColumn - 1);
+                mazeSolved =  trueMazeTraversal(theVisitedRooms, theRow, theColumn - 1);
             }
         }
         return mazeSolved;
@@ -286,6 +371,72 @@ public class Dungeon {
     private boolean isValidPosition(final int theRow, final int theColumn) {
         return theRow >= 0 && theRow < myMaze.length &&
             theColumn >= 0 && theColumn < myMaze[theRow].length;
+    }
+
+    /**
+     * This will check which direction the adventurer can
+     * go to and allow them to move to that location.
+     *
+     * @param theDirection is the direction user wants to go.
+     */
+    public void move(final String theDirection) {
+        //Room[][] mazeLocations = theDungeon.getMaze();
+        Room roomUpdate = new Room();
+        if (theDirection.compareToIgnoreCase("Up") == 0) {
+            roomUpdate = myMaze[getAdventureRow() - 1][getAdventureColumn()];
+        } else if (theDirection.compareToIgnoreCase("Right") == 0) {
+            roomUpdate = myMaze[getAdventureRow()][getAdventureColumn() + 1];
+        } else if (theDirection.compareToIgnoreCase("Down") == 0) {
+            roomUpdate = myMaze[getAdventureRow() + 1][getAdventureColumn()];
+        } else if (theDirection.compareToIgnoreCase("Left") == 0) {
+            roomUpdate = myMaze[getAdventureRow()][getAdventureColumn() - 1];
+        }
+        setAdventurePosition(roomUpdate);
+    }
+
+    /**
+     * This gives us the available directions
+     * from where the adventurer is.
+     *
+     */
+    public ArrayList<String> availableDirections() {
+        Room currentRoom = getAdventurePosition();
+        ArrayList<String> availableDirections = new ArrayList<>();
+        if (currentRoom.getNorthDoor()) {
+            availableDirections.add("Up");
+        }
+        if (currentRoom.getEastDoor()) {
+            availableDirections.add("Right");
+        }
+        if (currentRoom.getSouthDoor()) {
+            availableDirections.add("Down");
+        }
+        if (currentRoom.getWestDoor()) {
+            availableDirections.add("Left");
+        }
+
+        return availableDirections;
+    }
+
+    /**
+     * This will tell us if the adventurer
+     * is allowed to go a specific direction.
+     *
+     * @param theDirection is the direction adventurer wants to go.
+     * @return whether the direction is available or not.
+     */
+    public boolean isValidDirection(final String theDirection) {
+        Room currentRoom = getAdventurePosition();
+        if (theDirection.compareToIgnoreCase("Up") == 0 && currentRoom.getNorthDoor()) {
+            return true;
+        } else if (theDirection.compareToIgnoreCase("Right") == 0 && currentRoom.getEastDoor()) {
+            return true;
+        } else if (theDirection.compareToIgnoreCase("Down") == 0 && currentRoom.getSouthDoor()) {
+            return true;
+        } else if (theDirection.compareToIgnoreCase("Left") == 0 && currentRoom.getWestDoor()) {
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -313,8 +464,10 @@ public class Dungeon {
         } else if (myMaze[rowExit][columnExit].roomContains().equals(" ")) {
             myMaze[rowExit][columnExit].resetRoom();
             myMaze[rowExit][columnExit].setIsExit(true);
+            myMaze[rowExit][columnExit].setHasMonster(true);
         } else {
             myMaze[rowExit][columnExit].setIsExit(true);
+            myMaze[rowExit][columnExit].setHasMonster(true);
         }
     }
 
@@ -327,20 +480,22 @@ public class Dungeon {
         int columnPillar = myRand.nextInt(myColumns);
         if (!myMaze[rowPillar][columnPillar].roomContains().equals("i")
             && !myMaze[rowPillar][columnPillar].roomContains().equals("O")
-            && !myMaze[rowPillar][columnPillar].getHasOOPillar()) {
+            && !myMaze[rowPillar][columnPillar].getHasOOPPillar()) {
             myMaze[rowPillar][columnPillar].resetRoom();
             myMaze[rowPillar][columnPillar].pillarGenerate();
-            myMaze[rowPillar][columnPillar].setHasOOPillar(true);
-            if (myMaze[rowPillar][columnPillar].getSpecificOOPillar().equals("A") && !myPillarHolder.contains("A")) {
+            myMaze[rowPillar][columnPillar].setHasOOPPillar(true);
+            myMaze[rowPillar][columnPillar].setHasMonster(true);
+            if (myMaze[rowPillar][columnPillar].getSpecificOOPPillar().equals("A") && !myPillarHolder.contains("A")) {
                 myPillarHolder.add("A");
-            } else if (myMaze[rowPillar][columnPillar].getSpecificOOPillar().equals("E") && !myPillarHolder.contains("E")) {
+            } else if (myMaze[rowPillar][columnPillar].getSpecificOOPPillar().equals("E") && !myPillarHolder.contains("E")) {
                 myPillarHolder.add("E");
-            } else if (myMaze[rowPillar][columnPillar].getSpecificOOPillar().equals("I") && !myPillarHolder.contains("I")) {
+            } else if (myMaze[rowPillar][columnPillar].getSpecificOOPPillar().equals("I") && !myPillarHolder.contains("I")) {
                 myPillarHolder.add("I");
-            } else if (myMaze[rowPillar][columnPillar].getSpecificOOPillar().equals("P") && !myPillarHolder.contains("P")) {
+            } else if (myMaze[rowPillar][columnPillar].getSpecificOOPPillar().equals("P") && !myPillarHolder.contains("P")) {
                 myPillarHolder.add("P");
             } else {
-                myMaze[rowPillar][columnPillar].setHasOOPillar(false);
+                myMaze[rowPillar][columnPillar].setHasOOPPillar(false);
+                myMaze[rowPillar][columnPillar].setHasMonster(false);
                 placePillars();
             }
         } else {
@@ -350,21 +505,12 @@ public class Dungeon {
 
     }
 
-    private void placeDeadEnds() {
-        int doorCounter = 0;
-        int rowDeadEnd = myRand.nextInt(myRows);
-        int columnDeadEnd = myRand.nextInt(myColumns);
-        while (doorCounter < 1) {
-            if (!myMaze[rowDeadEnd][columnDeadEnd].getIsEntrance() || !myMaze[rowDeadEnd][columnDeadEnd].getIsExit()
-                || !myMaze[rowDeadEnd][columnDeadEnd].getHasOOPillar()) {
-                boolean randomDoor = myRand.nextBoolean();
-
-
-                doorCounter++;
-            }
-        }
-    }
-
+    /**
+     * This will count the amount of dead ends
+     * in the dungeon map.
+     *
+     * @return the amount of dead ends.
+     */
     private int amountOfDeadEnds() {
         int doorCounter = 0;
         int deadEndCounter = 0;
@@ -427,6 +573,26 @@ public class Dungeon {
         return exitLocation;
     }
 
+    public void addMonster() {
+        for (int i = 0; i < getRows(); i++) {
+            for (int j = 0; j < getColumns(); j++) {
+                if (myMaze[i][j].getHasMonster()) {
+                    int randomMonster = myRand.nextInt(1, 4);
+                    if (randomMonster == 1) {
+                        Monster monsterType = MonsterFactory.createMonster("Skeleton");
+                        myMaze[i][j].setMonster(monsterType);
+                    } else if (randomMonster == 2) {
+                        Monster monsterType = MonsterFactory.createMonster("Ogre");
+                        myMaze[i][j].setMonster(monsterType);
+                    } else {
+                        Monster monsterType = MonsterFactory.createMonster("Gremlin");
+                        myMaze[i][j].setMonster(monsterType);
+                    }
+                }
+            }
+        }
+    }
+
     /**
      * Gets the String representation of the
      * current room for display with no
@@ -435,7 +601,18 @@ public class Dungeon {
      * @return the String representation of the room.
      */
     public String noVisionToString() {
-        return myMaze[0][0].noVisionString(myMaze[getAdventureRow()][getAdventureColumn()]);
+        return myMaze[0][0].noVisionString(getAdventurePosition());
+    }
+
+    /**
+     * Gets the String representation of the
+     * current room and the surrounding rooms
+     * for display with use of vision potion.
+     *
+     * @return the String representation of the room and surrounding rooms.
+     */
+    public String visionPotionToString() {
+        return myMaze[0][0].yesVisionString(myMaze, getAdventureRow(), getAdventureColumn());
     }
 
     /**
@@ -447,10 +624,7 @@ public class Dungeon {
         return myMaze[0][0].toString(myMaze);
     }
 
-//    public static void main(String [] args) {
-//        Dungeon tester = new Dungeon(30, 3);
-//        System.out.println(tester);
-//    }
+
 
 
 }

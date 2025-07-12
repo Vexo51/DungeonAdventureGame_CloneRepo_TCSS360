@@ -7,19 +7,42 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Scanner;
 
+
+/**
+ * This class is uses to store monster name and stats in a SQLite database.
+ *
+ *
+ *
+ * @author Dung Nguyen
+ * @version 11/26/2023
+ */
 public class MonsterSQLiteDatabase {
 
 
+    /**
+     Initialize MonsterSQLiteDatabase as a static unique instance for singleton ('eager' instance)
+     */
+    private static MonsterSQLiteDatabase monsterDatabase = new MonsterSQLiteDatabase();
+
+
+    /**
+     data source that represents data in a SQLite database
+     */
     private SQLiteDataSource ds = null;
 
+
+    /**
+     A query string to be uses to request for data results from SQLite database or for action on the data
+     */
     private String query = "";
 
 
 
-
-    public MonsterSQLiteDatabase(){
+    /**
+     constructs a SQLite database for storing monster data
+     */
+    private MonsterSQLiteDatabase(){
         connect();
         createTableForMonster();
         if(readAllMonsters().isEmpty()){
@@ -30,9 +53,23 @@ public class MonsterSQLiteDatabase {
 
 
 
+
+    /**
+     * Returns this class instance of monster database.
+     *
+     * @return this class instance of monster database
+     */
+    public static MonsterSQLiteDatabase getInstance(){
+        return monsterDatabase;
+    }
+
+
+    /**
+     * establish connection and creates sqlite file if it does not exist
+     *
+     */
     private void connect(){
 
-        //establish connection (creates sqlite file if it does not exist :-)
         try {
             ds = new SQLiteDataSource();
             ds.setUrl("jdbc:sqlite:monsters.sqlite");
@@ -41,9 +78,13 @@ public class MonsterSQLiteDatabase {
             System.exit(0);
         }
 
-
     }
 
+
+    /**
+     * create a table that is uses to store monster data
+     *
+     */
     private void createTableForMonster(){
         // create a table
         query = "CREATE TABLE IF NOT EXISTS Monster ( " +
@@ -68,6 +109,12 @@ public class MonsterSQLiteDatabase {
         }
     }
 
+
+    /**
+     * delete specify monster from the table in the database
+     *
+     * @param theMonsterName captures the monster's name which will be deleted from the table
+     */
     public void deleteSpecificMonsterFromDatabase(final String theMonsterName){
 
         query = "DELETE FROM Monster WHERE MONSTER_NAME  = '" + theMonsterName +  "'";
@@ -85,6 +132,12 @@ public class MonsterSQLiteDatabase {
         }
     }
 
+
+    /**
+     * delete all monster data from the table in the database
+     *
+     *
+     */
     public void deletingTheTable(){
         query = "DROP TABLE IF EXISTS Monster";
 
@@ -102,8 +155,10 @@ public class MonsterSQLiteDatabase {
     }
 
 
-    // Method to create various monsters with different stats and insert them to SQLite table
-    // Remember to insert only when you want to store data for new type of monsters
+    /**
+     *  Create and insert various monsters with different names and stats and insert them to SQLite table
+     *
+     */
     public void insertMonstersToTable(){
         String query1 = "INSERT INTO Monster( MONSTER_NAME, MONSTER_HITPOINTS, " +
                 "MONSTER_MIN_DAMAGE, MONSTER_MAX_DAMAGE, MONSTER_ATTACK_SPEED, MONSTER_ACCURACY, " +
@@ -130,6 +185,14 @@ public class MonsterSQLiteDatabase {
         }
     }
 
+
+
+    /**
+     * Read the database and return a string containing monster's name, health points, damage range,
+     * attack speed, accuracy, heal range and heal chance
+     *
+     * @return a string containing monster's name, health points, damage range, attack speed, accuracy, heal range and heal chance
+     */
     public String readAllMonsters(){
 
         // query the database table for all its contents
@@ -169,7 +232,14 @@ public class MonsterSQLiteDatabase {
     }
 
 
-    public Monster readSpecificMonsterAndGenerateIt(final String theMonsterName){
+
+    /**
+     * retrieve monster data using their specify name from the database then
+     * initialize a Monster object by using those retrieve data and return it.
+     *
+     * @return a Monster object
+     */
+    public Monster getMonsterFromDatabase(final String theMonsterName){
 
         Monster monster = null;
 
@@ -211,19 +281,10 @@ public class MonsterSQLiteDatabase {
 
     // test on main to see if we can retrieve monster data stores in SQLite database and use it to generate monster
     public static void main(String[] args) {
-
-
-        MonsterSQLiteDatabase db = new MonsterSQLiteDatabase();
-
+        MonsterSQLiteDatabase db = MonsterSQLiteDatabase.getInstance();
         System.out.println(db.readAllMonsters());
-        Monster Ogre = db.readSpecificMonsterAndGenerateIt("Ogre");
+        Monster Ogre = db.getMonsterFromDatabase("Ogre");
         System.out.println(Ogre.toString());
-
-
-
-        System.out.println("press enter to close program/window");
-        Scanner input = new Scanner(System.in);
-        input.nextLine();
     }
 
 

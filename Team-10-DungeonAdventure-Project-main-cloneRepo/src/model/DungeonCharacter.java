@@ -6,6 +6,7 @@ package model;
 /**
  for using Random class
  */
+import java.io.Serializable;
 import java.util.Random;
 
 
@@ -17,7 +18,7 @@ import java.util.Random;
  * @author Dung Nguyen
  * @version 11/05/2023
  */
-public abstract class DungeonCharacter {
+public abstract class DungeonCharacter implements Serializable {
 
 
     /**
@@ -55,6 +56,11 @@ public abstract class DungeonCharacter {
      the chance to hit (accuracy) of the character.
      */
     private double myAccuracy;
+
+    /**
+     the attack result of the DungeonCharacter whenever they attack another DungeonCharacter.
+     */
+    private String myAttackResult;
 
 
 
@@ -204,7 +210,7 @@ public abstract class DungeonCharacter {
      *
      * @param theAttackSpeed capture the attack speed of your character
      */
-    protected  void setAttackSpeed(final int theAttackSpeed){
+    protected void setAttackSpeed(final int theAttackSpeed){
         if (theAttackSpeed <= 0){
             throw new IllegalArgumentException("the attack speed was negative or zero. " +
                                                "It should always be positive and greater than zero");
@@ -236,16 +242,16 @@ public abstract class DungeonCharacter {
      *
      * @param theSubtractedValue capture the integer damage amount
      */
-    protected void subtractHitPoints(final int theSubtractedValue) {
+    public void subtractHitPoints(final int theSubtractedValue) {
         if (theSubtractedValue < 0) {
             throw new IllegalArgumentException("theSubtractedValue was negative");
         }
 
         myHitPoints -= theSubtractedValue;
-        if (!isAlive()){
+        if (!isAlive()) {
             myHitPoints = 0;
-            System.out.println(myName + " has fainted.");
         }
+
     }
 
     /**
@@ -253,7 +259,7 @@ public abstract class DungeonCharacter {
      *
      * @param theAmount capture an integer amount of hit points to add to your character's health
      */
-    protected void increaseHitPoints(final int theAmount){
+    public void increaseHitPoints(final int theAmount){
         if (theAmount < 0) {
             throw new IllegalArgumentException("theAmount shouldn't be less than 0 when adding to hit points");
         }
@@ -266,7 +272,7 @@ public abstract class DungeonCharacter {
      *
      * @return true if the character hit an attack; false otherwise
      */
-    protected boolean hasAttackHit(){
+    private boolean hasAttackHit(){
         return MY_RANDOM.nextDouble() <= myAccuracy;
     }
 
@@ -303,25 +309,36 @@ public abstract class DungeonCharacter {
      *
      * @param theOpponent capture a DungeonCharacter to be attack by another DungeonCharacter
      */
-    public void Attack(DungeonCharacter theOpponent){
+    public void attack(DungeonCharacter theOpponent){
         if (theOpponent == null) {
             throw new IllegalArgumentException("the opponent DungeonCharacter passed to attack was null");
         }
 
-        if(isAlive() && theOpponent.isAlive()){
+        if (isAlive() && theOpponent.isAlive()){
+            boolean hitOrMiss = hasAttackHit();
             int damage = generateDamagesValue();
 
-            if(hasAttackHit()){
-                System.out.println("Success! " + myName + " hits " + theOpponent.getCharacterName()
-                        + " for " + damage + " damages! (" + theOpponent.getHitPoints() + " - " + damage + ")");
+            if (hitOrMiss){
+                myAttackResult = "Success! " + myName + " hits " + theOpponent.getCharacterName()
+                        + " for " + damage + " damages! (" + theOpponent.getHitPoints() + " - " + damage + ")";
                 theOpponent.subtractHitPoints(damage);
+                if (!theOpponent.isAlive()){
+                    myAttackResult += ("\n" + theOpponent.getCharacterName() + " has fainted.");
+                }
             } else {
-                System.out.println(myName + " missed the attack on " + theOpponent.getCharacterName());
+                myAttackResult = myName + " missed the attack on " + theOpponent.getCharacterName();
             }
         }
+    }
 
 
-
+    /**
+     * Returns attack result of the character.
+     *
+     * @return attack result of the character.
+     */
+    public String getAttackResult(){
+        return myAttackResult;
     }
 
 

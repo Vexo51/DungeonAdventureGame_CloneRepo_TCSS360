@@ -1,5 +1,6 @@
 package model;
 
+
 /**
  for using Array list
  */
@@ -16,13 +17,10 @@ import java.util.ArrayList;
  * @version 11/05/2023
  */
 
-public abstract class Hero extends DungeonCharacter{
+public abstract class Hero extends DungeonCharacter {
 
 
-    /**
-     the name of the Hero character.
-     */
-    private String myHeroName;
+
 
     /**
      the amount of healing potions the Hero character has.
@@ -47,9 +45,12 @@ public abstract class Hero extends DungeonCharacter{
 
 
     /**
-     * The hit points of the hero character.
+     the attack result of Hero whenever they attack another DungeonCharacter(Monster).
      */
-    private int myHeroHitPoints;
+    private String myHeroAttackResult;
+
+
+
 
 
     /**
@@ -71,13 +72,14 @@ public abstract class Hero extends DungeonCharacter{
      * @param theChanceToBlock capture the chance to block of your hero character
      */
 
-    public Hero(final String theCharacterName, final int theHitPoints,
+    protected Hero(final String theCharacterName, final int theHitPoints,
                 final int theMinDamage, final int theMaxDamage,
                 final int theAttackSpeed, final double theAccuracy,
                 final double theChanceToBlock){
 
-        super(theCharacterName, theHitPoints, theMinDamage, theMaxDamage, theAttackSpeed, theAccuracy );
-        generateAndSetMyHeroHitPoints(theHitPoints);
+        super(theCharacterName, MY_RANDOM.nextInt(theHitPoints - (theHitPoints - 25)) + (theHitPoints - 25),
+                theMinDamage, theMaxDamage, theAttackSpeed, theAccuracy );
+
         setMyChanceToBlock(theChanceToBlock);
 
     }
@@ -113,14 +115,6 @@ public abstract class Hero extends DungeonCharacter{
         return myChanceToBlock;
     }
 
-    /**
-     * Returns the hit points of the Hero character.
-     *
-     * @return the hit points of the Hero character
-     */
-    public int getHeroHitPoints(){
-        return myHeroHitPoints;
-    }
 
     /**
      * Returns the array list of Pillar Pieces found by the Hero character.
@@ -131,17 +125,6 @@ public abstract class Hero extends DungeonCharacter{
         return myFoundPillars;
     }
 
-
-    /**
-     * Generate random hit points within the range of ((max health - 25) to max health)
-     * And then set hit points of the hero character.
-     *
-     * @param theMaxHitPoint capture hit point of your Hero character
-     */
-    protected void generateAndSetMyHeroHitPoints(final int theMaxHitPoint){
-        int minHitPoint = theMaxHitPoint - 25;
-        myHeroHitPoints = MY_RANDOM.nextInt(theMaxHitPoint - minHitPoint) + minHitPoint;
-    }
 
 
     /**
@@ -157,6 +140,14 @@ public abstract class Hero extends DungeonCharacter{
         myHealingPotions += theHealingPotions;
     }
 
+
+    /**
+     * use one healing potion and subtract it from the Hero's storage
+     */
+    public void useHealingPotion() {
+        myHealingPotions--;
+    }
+
     /**
      * collect a string representing an OOP Pillar Piece found by the Hero character
      * and add that string piece to the array list of Found Pillars
@@ -164,9 +155,10 @@ public abstract class Hero extends DungeonCharacter{
      * @param theFoundPillar capture the string of a Pillar Piece found by your Hero character
      */
     public void collectFoundPillarOfOOP(final String theFoundPillar){
-        if (theFoundPillar == null || !theFoundPillar.equals("A") || !theFoundPillar.equals("E")
-                || !theFoundPillar.equals("I") || !theFoundPillar.equals("P")){
+        if (theFoundPillar == null && !theFoundPillar.equals("A") && !theFoundPillar.equals("E")
+                && !theFoundPillar.equals("I") && !theFoundPillar.equals("P")){
             // no pillar was found
+            throw new IllegalArgumentException("The input string for found pillar was null or wasn't equal to any of the 4 OOP pillars");
         } else {
             myFoundPillars.add(theFoundPillar);
         }
@@ -188,6 +180,14 @@ public abstract class Hero extends DungeonCharacter{
 
 
     /**
+     * use one vision potion and subtract it from the Hero's storage
+     */
+    public void useVisionPotion() {
+        myVisionPotions--;
+    }
+
+
+    /**
      * Set the chance to block of the hero character.
      *
      * @param theChanceToBlock capture the chance to block of your Hero character
@@ -200,50 +200,15 @@ public abstract class Hero extends DungeonCharacter{
     }
 
 
-
-
     /**
      * Return whether the Hero character has blocked an attack or not
      * based on the Hero's chance to block.
      *
      * @return true if Hero blocked the attack; false otherwise
      */
-    protected boolean hasHeroBlock(){
+    public boolean hasHeroBlock(){
         return MY_RANDOM.nextDouble() <= myChanceToBlock;
     }
-
-
-
-    /**
-     * Decreasing an amount of hit points from the Hero's health.
-     *
-     * @param theSubtractedValue capture an integer value of hit points to subtracted from your Hero's health
-     */
-    public void decreaseHeroHitPoints(final int theSubtractedValue){
-        if (theSubtractedValue < 0) {
-            throw new IllegalArgumentException("theSubtractedValue was negative");
-        }
-
-        myHeroHitPoints -= theSubtractedValue;
-        if (!isAlive()){
-            myHeroHitPoints = 0;
-            System.out.println(getCharacterName() + " has fainted.");
-        }
-    }
-
-    /**
-     * Add an amount of hit points to your Hero's health.
-     *
-     * @param theAmount capture an integer amount of hit points to add to your Hero's health
-     */
-    protected void addingHeroHitPoints(final int theAmount){
-        if (theAmount < 0) {
-            throw new IllegalArgumentException("theAmount shouldn't be less than 0 when adding to hit points");
-        }
-        myHeroHitPoints += theAmount;
-    }
-
-
 
 
     /**
@@ -256,10 +221,12 @@ public abstract class Hero extends DungeonCharacter{
      * @param theOpponent capture a DungeonCharacter to be attack by another DungeonCharacter
      */
     @Override
-    public void Attack(final DungeonCharacter theOpponent) {
+    public void attack(final DungeonCharacter theOpponent) {
         if (theOpponent == null) {
             throw new IllegalArgumentException("the opponent DungeonCharacter passed to attack was null");
         }
+
+        myHeroAttackResult = "";
 
         //  check that a hero never gets fewer attacks than a monster
         int numberOfAttacks = getAttackSpeed() / theOpponent.getAttackSpeed();
@@ -269,89 +236,27 @@ public abstract class Hero extends DungeonCharacter{
         }
 
         while (numberOfAttacks >= 1){
-            super.Attack(theOpponent);
+            super.attack(theOpponent);
+            if (!theOpponent.isAlive()){
+                myHeroAttackResult = getAttackResult();
+            } else {
+                myHeroAttackResult += getAttackResult() + "\n";
+            }
             numberOfAttacks--;
         }
 
     }
 
+
     /**
-     * This will check which direction the adventurer can
-     * go to and allow them to move to that location.
+     * Returns attack result of the Hero character.
      *
-     * @param theDungeon is the Dungeon map.
+     * @return attack result of the Hero character.
      */
-    public void move(Dungeon theDungeon, String theDirection) {
-        Room[][] mazeLocations = theDungeon.getMaze();
-        Room roomUpdate = new Room();
-        if (theDirection.compareToIgnoreCase("Up") == 0) {
-            roomUpdate = mazeLocations[theDungeon.getAdventureRow() - 1][theDungeon.getAdventureColumn()];
-        } else if (theDirection.compareToIgnoreCase("Right") == 0) {
-            roomUpdate = mazeLocations[theDungeon.getAdventureRow()][theDungeon.getAdventureColumn() + 1];
-        } else if (theDirection.compareToIgnoreCase("Down") == 0) {
-            roomUpdate = mazeLocations[theDungeon.getAdventureRow() + 1][theDungeon.getAdventureColumn()];
-        } else if (theDirection.compareToIgnoreCase("Left") == 0) {
-            roomUpdate = mazeLocations[theDungeon.getAdventureRow()][theDungeon.getAdventureColumn() - 1];
-        }
-        theDungeon.setAdventurePosition(roomUpdate);
+    public String getHeroAttackResult(){
+        return myHeroAttackResult;
     }
 
-    /**
-     * This gives us the available directions
-     * from where the adventurer is.
-     *
-     * @param theDungeon is the Dungeon map.
-     */
-    public void availableDirections(Dungeon theDungeon) {
-        Room currentRoom = theDungeon.getAdventurePosition();
-        ArrayList<String> availableDirections = new ArrayList<>();
-        if (currentRoom.getNorthDoor()) {
-            availableDirections.add("North Door is Available");
-        }
-        if (currentRoom.getEastDoor()) {
-            availableDirections.add("East Door is Available");
-        }
-        if (currentRoom.getSouthDoor()) {
-            availableDirections.add("South Door is Available");
-        }
-        if (currentRoom.getWestDoor()) {
-            availableDirections.add("West Door is Available");
-        }
-
-        for (String availableDirection : availableDirections) {
-            System.out.println(availableDirection);
-        }
-    }
-
-    /**
-     * This will tell us if the adventurer
-     * is allowed to go a specific direction.
-     *
-     * @param theDungeon is the Dungeon map.
-     * @param theDirection is the direction adventurer wants to go.
-     * @return whether the direction is available or not.
-     */
-    public boolean isValidDirection(Dungeon theDungeon, String theDirection) {
-        Room currentRoom = theDungeon.getAdventurePosition();
-        if (theDirection.compareToIgnoreCase("Up") == 0 && currentRoom.getNorthDoor()) {
-            return true;
-        } else if (theDirection.compareToIgnoreCase("Right") == 0 && currentRoom.getEastDoor()) {
-            return true;
-        } else if (theDirection.compareToIgnoreCase("Down") == 0 && currentRoom.getSouthDoor()) {
-            return true;
-        } else if (theDirection.compareToIgnoreCase("Left") == 0 && currentRoom.getWestDoor()) {
-            return true;
-        }
-        return false;
-    }
-
-
-    /**
-     * Hero will have a special skill to be implements by every child classes that are extends from Hero
-     *
-     * @param theCharacter capture a DungeonCharacter to use special skill on.
-     */
-    public abstract void useSpecialSkill(final DungeonCharacter theCharacter);
 
 
     /**
@@ -362,7 +267,7 @@ public abstract class Hero extends DungeonCharacter{
      *
      * @return a string containing Hero's name, Hero's hit points, total # of healing potions, total # of vision potions, list of OOP found pillar pieces
      */
-    public String toString(){
+    public String heroToString(){
 
         String listOfPillars = "";
 
@@ -371,9 +276,9 @@ public abstract class Hero extends DungeonCharacter{
         }
 
         return "Name: " + getCharacterName() + "\n"
-                + "HP: " + myHeroHitPoints + "\n"
-                + "Total healing potions: " + myHealingPotions + "\n"
-                + "Total vision potions: " + myVisionPotions + "\n"
+                + "HP: " + getHitPoints() + "\n"
+                + "Total # of healing potions: " + myHealingPotions + "\n"
+                + "Total # of vision potions: " + myVisionPotions + "\n"
                 + "List of pillars pieces found: " + listOfPillars + "\n";
     }
 

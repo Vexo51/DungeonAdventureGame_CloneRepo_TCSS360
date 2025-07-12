@@ -1,19 +1,17 @@
-import model.Hero;
-import model.Monster;
-import model.MonsterSQLiteDatabase;
-import model.Priestess;
-import model.Thief;
-import model.Warrior;
+package Model;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import java.io.PrintStream;
 
 public class DungeonAdventureAllPlayableCharactersTest {
 
 
     @Test
-    void isNameSetForPrietess(){
+    void isNameSetForPriestess(){
 
-        Hero priest = new Priestess("Maya");
+        Priestess priest = new Priestess("Maya");
         String name = "Maya";
 
         Assertions.assertEquals(name, priest.getCharacterName(), "setting name for priest didn't work");
@@ -23,7 +21,7 @@ public class DungeonAdventureAllPlayableCharactersTest {
     @Test
     void isNameSetForWarrior(){
 
-        Hero warrior = new Warrior("Brad");
+        Warrior warrior = new Warrior("Brad");
         String name = "Brad";
 
         Assertions.assertEquals(name, warrior.getCharacterName(), "setting name for warrior didn't work");
@@ -32,7 +30,7 @@ public class DungeonAdventureAllPlayableCharactersTest {
     @Test
     void isNameSetForThief(){
 
-        Hero thief = new Thief("Ray");
+        Thief thief = new Thief("Ray");
         String name = "Ray";
 
         Assertions.assertEquals(name, thief.getCharacterName(), "setting name for thief didn't work");
@@ -40,11 +38,11 @@ public class DungeonAdventureAllPlayableCharactersTest {
 
     @Test // expect: HP for Warrior to be set within 100 to 125
     void isHPSetWithinRangeForWarrior(){
-        Hero warrior = new Warrior("Brad");
+        Warrior warrior = new Warrior("Brad");
 
 
         boolean isWithinRange = true;
-        int Hitpoints = warrior.getHeroHitPoints();
+        int Hitpoints = warrior.getHitPoints();
         if (Hitpoints < 100 || Hitpoints > 125){
             isWithinRange = false;
         }
@@ -54,11 +52,11 @@ public class DungeonAdventureAllPlayableCharactersTest {
 
     @Test // expect: HP for Thief to be set within 50 to 75
     void isHPSetWithinRangeForThief(){
-        Hero thief = new Thief("Ray");
+        Thief thief = new Thief("Ray");
 
 
         boolean isWithinRange = true;
-        int Hitpoints = thief.getHeroHitPoints();
+        int Hitpoints = thief.getHitPoints();
         if (Hitpoints < 50 || Hitpoints > 75){
             isWithinRange = false;
         }
@@ -68,11 +66,11 @@ public class DungeonAdventureAllPlayableCharactersTest {
 
     @Test // expect: HP for Priestess to be set within 50 to 75
     void isHPSetWithinRangeForPriestess(){
-        Hero priest = new Priestess("maya");
+        Priestess priest = new Priestess("maya");
 
 
         boolean isWithinRange = true;
-        int Hitpoints = priest.getHeroHitPoints();
+        int Hitpoints = priest.getHitPoints();
         if (Hitpoints < 50 || Hitpoints > 75){
             isWithinRange = false;
         }
@@ -83,17 +81,17 @@ public class DungeonAdventureAllPlayableCharactersTest {
 
     @Test
     void didHPGetSubtractedFromWarrior(){
-        Hero warrior = new Warrior("Brad");
+        Warrior warrior = new Warrior("Brad");
 
         boolean didWarriorHPDecreased = false;
-        int characterHPBeforeSubtract = warrior.getHeroHitPoints();
+        int characterHPBeforeSubtract = warrior.getHitPoints();
 
         // keep looping until hit points is decreased once
-        while (warrior.getHeroHitPoints() == characterHPBeforeSubtract){
-            warrior.decreaseHeroHitPoints(30);
+        while (warrior.getHitPoints() == characterHPBeforeSubtract){
+            warrior.subtractHitPoints(30);
         }
 
-        if (characterHPBeforeSubtract != warrior.getHeroHitPoints()){
+        if (characterHPBeforeSubtract != warrior.getHitPoints()){
             didWarriorHPDecreased = true;
         }
 
@@ -103,12 +101,12 @@ public class DungeonAdventureAllPlayableCharactersTest {
 
     @Test
     void creatingMonsterUsingDataStoresInSQLite(){
-        MonsterSQLiteDatabase db = new MonsterSQLiteDatabase();
+        MonsterSQLiteDatabase db = MonsterSQLiteDatabase.getInstance();
 
         Monster monsterOne = new Monster("Ogre", 200, 30, 60,
                 2, 60.0, 30, 60, 10.0);
 
-        Monster monsterTwo = db.readSpecificMonsterAndGenerateIt("Ogre");
+        Monster monsterTwo = db.getMonsterFromDatabase("Ogre");
 
         Assertions.assertEquals(monsterOne.toString(), monsterTwo.toString(), "The stats of both monsters aren't equal");
     }
@@ -116,16 +114,17 @@ public class DungeonAdventureAllPlayableCharactersTest {
 
     @Test
     void didDamagesAppliedWhenWarriorAttacksMonsterCharacter(){
-        MonsterSQLiteDatabase db = new MonsterSQLiteDatabase();
 
-        Hero warrior= new Warrior("Brad");
-        Monster skeleton = db.readSpecificMonsterAndGenerateIt("Skeleton");
+
+        Warrior warrior= new Warrior("Brad");
+        Monster skeleton = MonsterFactory.createMonster("Skeleton");
 
         boolean hasDamageApplied = false;
 
         // keep looping until attack hit once in case if previous attack missed
         do {
-            warrior.Attack(skeleton);
+            warrior.attack(skeleton);
+            System.out.println(warrior.getAttackResult());
         } while (skeleton.getHitPoints() == 100);
 
         if(skeleton.getHitPoints() != 100){
@@ -137,15 +136,15 @@ public class DungeonAdventureAllPlayableCharactersTest {
 
     @Test
     void doesAttackStoppedWhenCharacterHealthReachesZeroOrLess(){
-        MonsterSQLiteDatabase db = new MonsterSQLiteDatabase();
 
-        Hero warrior = new Warrior("Brad");
-        Monster skeleton = db.readSpecificMonsterAndGenerateIt("Skeleton");
+        Warrior warrior = new Warrior("Brad");
+        Monster skeleton = MonsterFactory.createMonster("Skeleton");
 
         boolean hasAttackStopped = false;
 
         while (skeleton.isAlive()){
-            warrior.Attack(skeleton);
+            warrior.attack(skeleton);
+            System.out.print(warrior.getHeroAttackResult());
         }
 
         if(!skeleton.isAlive()){
@@ -158,10 +157,10 @@ public class DungeonAdventureAllPlayableCharactersTest {
 
     @Test
     void didDamagesAppliedWhenWarriorUsesCrushingBlow(){
-        MonsterSQLiteDatabase db = new MonsterSQLiteDatabase();
 
-        Hero warrior = new Warrior("Brad");
-        Monster skeleton = db.readSpecificMonsterAndGenerateIt("Skeleton");
+
+        Warrior warrior = new Warrior("Brad");
+        Monster skeleton = MonsterFactory.createMonster("Skeleton");
 
         boolean hasDamageApplied = false;
         System.out.println(skeleton.getHitPoints());
@@ -169,7 +168,8 @@ public class DungeonAdventureAllPlayableCharactersTest {
 
         // keep looping until special skill activate once in case if previous special skill failed
         do {
-            warrior.useSpecialSkill(skeleton);
+            warrior.useCrushingBlow(skeleton);
+            System.out.println(warrior.getCrushingBlowAttackResult());
         } while (skeleton.getHitPoints() == 100);
 
         if(skeleton.getHitPoints() != 100){
@@ -183,12 +183,13 @@ public class DungeonAdventureAllPlayableCharactersTest {
 
     @Test
     void priestessSpecialSkillForHealing() {
-        Hero priest = new Priestess("Maya");
+        Priestess priest = new Priestess("Maya");
         boolean didHealingApplied = false;
 
-        int originalHealthBeforeHealing = priest.getHeroHitPoints();
-        priest.useSpecialSkill(priest);
-        int healthAfterHealing = priest.getHeroHitPoints();
+        int originalHealthBeforeHealing = priest.getHitPoints();
+        priest.heal();
+        System.out.println(priest.getHealingResult());
+        int healthAfterHealing = priest.getHitPoints();
 
         if (originalHealthBeforeHealing != healthAfterHealing){
             didHealingApplied = true;
@@ -201,10 +202,10 @@ public class DungeonAdventureAllPlayableCharactersTest {
 
     @Test
     void doesSurpriseAttackWorkCorrectlyForThief(){
-        MonsterSQLiteDatabase db = new MonsterSQLiteDatabase();
 
-        Hero thief = new Thief("Ray");
-        Monster skeleton = db.readSpecificMonsterAndGenerateIt("Skeleton");
+
+        Thief thief = new Thief("Ray");
+        Monster skeleton = MonsterFactory.createMonster("Skeleton");
 
         boolean hasDamageApplied = false;
         System.out.println(skeleton.getHitPoints());
@@ -212,7 +213,8 @@ public class DungeonAdventureAllPlayableCharactersTest {
 
         // keep looping until special skill activate once in case if previous special skill failed
         do {
-            thief.useSpecialSkill(skeleton);
+            thief.useSurpriseAttack(skeleton);
+            System.out.println(thief.getSurpriseAttackResult());
         } while (skeleton.getHitPoints() == 100);
 
         if(skeleton.getHitPoints() != 100){
@@ -226,16 +228,17 @@ public class DungeonAdventureAllPlayableCharactersTest {
 
     @Test
     void doMonsterHealCorrectlyAfterLosingHealthPoints(){
-        MonsterSQLiteDatabase db = new MonsterSQLiteDatabase();
 
-        Hero warrior = new Warrior("Brad");
-        Monster skeleton = db.readSpecificMonsterAndGenerateIt("Skeleton");
+
+        Warrior warrior = new Warrior("Brad");
+        Monster skeleton = MonsterFactory.createMonster("Skeleton");
 
         boolean hasHealingAppliedAfterDamage = false;
 
         // make sure Hero successfully attack once
         do {
-            warrior.Attack(skeleton);
+            warrior.attack(skeleton);
+            System.out.println(warrior.getAttackResult());
         } while (skeleton.getHitPoints() == 100);
 
         int skeletonHealthBeforeHealing = skeleton.getHitPoints();
@@ -243,6 +246,7 @@ public class DungeonAdventureAllPlayableCharactersTest {
         // make sure Skeleton successfully heal once
         do{
             skeleton.heal();
+            System.out.println(skeleton.getHealResult());
         } while (skeleton.getHitPoints() == skeletonHealthBeforeHealing);
 
         if(skeleton.getHitPoints() != skeletonHealthBeforeHealing){

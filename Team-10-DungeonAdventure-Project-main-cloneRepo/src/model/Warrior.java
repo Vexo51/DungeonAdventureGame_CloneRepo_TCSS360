@@ -13,17 +13,17 @@ package model;
  */
 public class Warrior extends Hero{
 
-    private static final int WARRIOR_HIT_POINTS = 125;
-    private static final int WARRIOR_MIN_DAMAGE = 35;
-    private static final int WARRIOR_MAX_DAMAGE = 60;
-    private static final int WARRIOR_ATTACK_SPEED = 4;
-    private static final double WARRIOR_ACCURACY = 80.0;
-    private static final double WARRIOR_BLOCK_CHANCE = 20.0;
 
     /**
      the chance to use special skill for Warrior.
      */
     private double myChanceToUseSpecialSkill;
+
+
+    /**
+     the special attack result of the Warrior whenever they use Crushing Blow on another DungeonCharacter.
+     */
+    private String myCrushingBlowAttackResult;
 
 
 
@@ -40,8 +40,8 @@ public class Warrior extends Hero{
      */
     public Warrior(final String theName){
 
-        super(theName, WARRIOR_HIT_POINTS, WARRIOR_MIN_DAMAGE, WARRIOR_MAX_DAMAGE,
-                WARRIOR_ATTACK_SPEED, WARRIOR_ACCURACY, WARRIOR_BLOCK_CHANCE);
+        super(theName, 125, 35, 60,
+                4, 80.0, 20.0);
         setChanceToUseSpecialSkill(40.0);
 
 
@@ -86,22 +86,33 @@ public class Warrior extends Hero{
      *
      * @param theCharacter capture the DungeonCharacter to use special skill on by the Warrior
      */
-    @Override
-    public void useSpecialSkill(final DungeonCharacter theCharacter){
+    public void useCrushingBlow(final DungeonCharacter theCharacter){
         if (theCharacter == null) {
             throw new IllegalArgumentException("the opponent DungeonCharacter passed to use special skill on was null");
         }
 
         int specialDamage = MY_RANDOM.nextInt(176 - 75) + 75;
         if(hasWarriorSucceededInUsingCrushingBlow()){
-            System.out.println("Success! " + getCharacterName() + " dealt a heavy blow to " + theCharacter.getCharacterName()
-                    + " for " + specialDamage + " damages! (" + theCharacter.getHitPoints() + " - " + specialDamage + ")");
+            myCrushingBlowAttackResult = "Success! " + getCharacterName() + " dealt a heavy blow to " + theCharacter.getCharacterName()
+                    + " for " + specialDamage + " damages! (" + theCharacter.getHitPoints() + " - " + specialDamage + ")";
             theCharacter.subtractHitPoints(specialDamage);
+            if (!theCharacter.isAlive()){
+                myCrushingBlowAttackResult += "\n" + theCharacter.getCharacterName() + " has fainted.";
+            }
 
         } else {
-            System.out.println(getCharacterName() + " failed to use Crushing Blow");
+            myCrushingBlowAttackResult = getCharacterName() + " failed to use Crushing Blow";
         }
 
+    }
+
+    /**
+     * Returns Crushing Blow attack result of the Warrior character.
+     *
+     * @return Crushing Blow attack result of the Warrior character.
+     */
+    public String getCrushingBlowAttackResult(){
+        return myCrushingBlowAttackResult;
     }
 }
 

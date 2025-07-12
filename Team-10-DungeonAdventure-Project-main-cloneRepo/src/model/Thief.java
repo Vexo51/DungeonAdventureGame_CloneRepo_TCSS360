@@ -12,12 +12,6 @@ package model;
  */
 public class Thief extends Hero {
 
-    private static final int THIEF_HIT_POINTS = 75;
-    private static final int THIEF_MIN_DAMAGE = 20;
-    private static final int THIEF_MAX_DAMAGE = 40;
-    private static final int THIEF_ATTACK_SPEED = 6;
-    private static final double THIEF_ACCURACY = 80.0;
-    private static final double THIEF_BLOCK_CHANCE = 40.0;
 
     /**
      the chance of success for using thief's special skill.
@@ -28,6 +22,11 @@ public class Thief extends Hero {
      the caught chance when using your thief's special attack.
      */
     private double myThiefChanceOfGettingCaught;
+
+    /**
+     the surprise attack result of the Thief whenever they attack another DungeonCharacter.
+     */
+    private String mySurpriseAttackResult;
 
 
     /**
@@ -42,8 +41,8 @@ public class Thief extends Hero {
      * @param theName capture the character name for your Thief
      */
     public Thief(final String theName){
-        super(theName, THIEF_HIT_POINTS, THIEF_MIN_DAMAGE, THIEF_MAX_DAMAGE,
-                THIEF_ATTACK_SPEED, THIEF_ACCURACY, THIEF_BLOCK_CHANCE);
+        super(theName, 75, 20, 40,
+                6, 80.0, 40.0);
         setChanceToUseSpecialSkill(40.0);
         setCaughtChance(20.0);
 
@@ -89,7 +88,7 @@ public class Thief extends Hero {
         if(theChanceToGetCaught > 100.0 || theChanceToGetCaught <= 0){
             throw new IllegalArgumentException("the chance of getting caught was either greater than 100 percent or less than or equal to 0.");
         }
-        myChanceToUseSpecialSkill = theChanceToGetCaught/100.0;
+        myThiefChanceOfGettingCaught = theChanceToGetCaught/100.0;
     }
 
 
@@ -121,8 +120,7 @@ public class Thief extends Hero {
      *
      * @param theCharacter capture a DungeonCharacter to use special skill on by the Thief.
      */
-    @Override
-    public void useSpecialSkill(final DungeonCharacter theCharacter){
+    public void useSurpriseAttack(final DungeonCharacter theCharacter){
 
         if (theCharacter == null) {
             throw new IllegalArgumentException("the DungeonCharacter passed to use special skill on was null");
@@ -132,22 +130,39 @@ public class Thief extends Hero {
 
         System.out.println(getCharacterName() + " uses surprise attack on " + theCharacter.getCharacterName());
 
-        if(hasThiefSucceededInSurpriseAttack()){
-            System.out.println("Success!(40%) " + getCharacterName() + " gained an extra attack this round!");
-            System.out.println(getCharacterName() + " dealt a surprise attack on " + theCharacter.getCharacterName()
-                    + " for " + damage + " damages! (" + theCharacter.getHitPoints() + " - " + damage + ")");
+        if (hasThiefSucceededInSurpriseAttack()){
+            mySurpriseAttackResult = "Success!(40%) " + getCharacterName() + " gained an extra attack this round!\n" +
+                                      getCharacterName() + " dealt a surprise attack on " + theCharacter.getCharacterName()
+                                      + " for " + damage + " damages! (" + theCharacter.getHitPoints() + " - " + damage + ")\n";
             theCharacter.subtractHitPoints(damage);
-            super.Attack(theCharacter);
+            if (!theCharacter.isAlive()){
+                mySurpriseAttackResult += "\n" + theCharacter.getCharacterName() + " has fainted.";
+            } else {
+                super.attack(theCharacter);
+                mySurpriseAttackResult += getHeroAttackResult();
+            }
 
         } else if (hasThiefGotCaught()){
-            System.out.println(getCharacterName() + " got caught. Surprise attack failed!(20%)");
+            mySurpriseAttackResult = getCharacterName() + " got caught. Surprise attack failed!(20%)\n";
         } else {
-            System.out.println(getCharacterName() + " failed to surprise " + theCharacter.getCharacterName() + "."
-                    + getCharacterName() + " switches to normal attack (40%)");
-            super.Attack(theCharacter);
+            mySurpriseAttackResult = getCharacterName() + " failed to surprise " + theCharacter.getCharacterName() + ". "
+                    + getCharacterName() + " switches to normal attack (40%)\n";
+            super.attack(theCharacter);
+            if (!theCharacter.isAlive()){
+                mySurpriseAttackResult = "\n" + theCharacter.getCharacterName() + " has fainted.";
+            }
+            mySurpriseAttackResult += getHeroAttackResult();
         }
+    }
 
 
+    /**
+     * Returns surprise attack result of the Thief character.
+     *
+     * @return surprise attack result of the Thief character.
+     */
+    public String getSurpriseAttackResult(){
+        return mySurpriseAttackResult;
     }
 
 }
